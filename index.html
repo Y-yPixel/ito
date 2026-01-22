@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ito Online - 価値観共有ゲーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #f0f9ff; }
+        .card-shadow { box-shadow: 0 10px 0 #e0f2fe; }
+        .btn-shadow { box-shadow: 0 6px 0 #0284c7; }
+        .btn-shadow:active { box-shadow: none; transform: translateY(4px); }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appIdPrefix = typeof __app_id !== 'undefined' ? __app_id : 'ito-github-final';
+
+        const { useState, useEffect } = React;
+
+        // --- Icons (Embedded SVGs to avoid CDN issues) ---
+        const Icons = {
+            Users: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            ),
+            Star: ({ className }) => (
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            ),
+            Refresh: () => (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            ),
+            Eye: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            ),
+            EyeOff: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+            ),
+            Send: () => (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            ),
+            Maximize: () => (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+            ),
+            Minimize: () => (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v5H3"/><path d="M16 3v5h5"/><path d="M3 16h5v5"/><path d="M21 16h5v5"/></svg>
+            ),
+            Check: () => (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            )
+        };
+
+        const THEMES = [
+            "食べ物の人気度", "無人島に持っていきたいもの", "一生に一度はやってみたいこと",
+            "おにぎりの具の強さ", "コンビニでつい買ってしまうもの", "かっこいいと思う職業",
+            "最強の超能力", "あったら嬉しい未来の道具", "幸せを感じる瞬間",
+            "お弁当に入っていて嬉しいおかず", "動物の強さ", "カバンの中にあると便利なもの",
+            "学校・職場で言われて嬉しい言葉", "冬に食べたくなるもの", "一度は住んでみたい場所"
+        ];
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [joinedRoom, setJoinedRoom] = useState(null);
+            const [roomID, setRoomID] = useState('');
+            const [userName, setUserName] = useState(localStorage.getItem('ito_player_name') || '');
+            const [roomData, setRoomData] = useState(null);
+            const [isNumberVisible, setIsNumberVisible] = useState(false);
+            const [answer, setAnswer] = useState('');
+            const [isLargeDisplay, setIsLargeDisplay] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) { console.error(e); }
+                };
+                initAuth();
+                return onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    setIsLoading(false);
+                });
+            }, []);
+
+            useEffect(() => {
+                if (!user || !joinedRoom) return;
+                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom);
+                return onSnapshot(roomRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        setRoomData(snapshot.data());
+                    }
+                }, (err) => console.error("Firestore Error:", err));
+            }, [user, joinedRoom]);
+
+            const handleJoin = async () => {
+                if (!user || !roomID.trim() || !userName.trim()) return;
+                const cleanID = roomID.trim().toLowerCase();
+                localStorage.setItem('ito_player_name', userName);
+                
+                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', cleanID);
+                const snap = await getDoc(roomRef);
+                const player = { uid: user.uid, name: userName };
+
+                if (!snap.exists()) {
+                    await setDoc(roomRef, {
+                        status: 'waiting',
+                        players: [player],
+                        theme: THEMES[Math.floor(Math.random() * THEMES.length)],
+                        numbers: {},
+                        answers: {},
+                        updatedAt: Date.now()
+                    });
+                } else {
+                    const data = snap.data();
+                    if (!data.players.find(p => p.uid === user.uid)) {
+                        await updateDoc(roomRef, {
+                            players: arrayUnion(player),
+                            updatedAt: Date.now()
+                        });
+                    }
+                }
+                setJoinedRoom(cleanID);
+            };
+
+            const startGame = async () => {
+                if (!roomData) return;
+                const nums = Array.from({ length: 100 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+                const assigned = {};
+                roomData.players.forEach((p, i) => assigned[p.uid] = nums[i]);
+
+                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom);
+                await updateDoc(roomRef, {
+                    status: 'playing',
+                    numbers: assigned,
+                    answers: {},
+                    updatedAt: Date.now()
+                });
+                setIsNumberVisible(false);
+                setAnswer('');
+            };
+
+            const changeTheme = async () => {
+                const newTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
+                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom);
+                await updateDoc(roomRef, { theme: newTheme });
+            };
+
+            const submitAnswer = async () => {
+                if (!answer.trim()) return;
+                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom);
+                await updateDoc(roomRef, { [`answers.${user.uid}`]: answer.trim() });
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="flex h-screen items-center justify-center">
+                        <div className="text-sky-500 font-black animate-pulse text-xl">サーバーに接続中...</div>
+                    </div>
+                );
+            }
+
+            if (!joinedRoom) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <div className="w-full max-w-md bg-white rounded-[3rem] p-10 shadow-xl card-shadow animate-pop">
+                            <div className="text-center mb-8">
+                                <div className="bg-amber-100 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-inner">
+                                    <Icons.Star className="text-amber-500 fill-amber-500" />
+                                </div>
+                                <h1 className="text-4xl font-black text-sky-600 italic tracking-tighter">ito Online</h1>
+                                <p className="text-sky-300 font-bold text-sm mt-2">価値観が試されるカードゲーム</p>
+                            </div>
+                            <div className="space-y-4">
+                                <input 
+                                    className="w-full bg-sky-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-sky-400 font-bold text-lg text-slate-700"
+                                    placeholder="あなたのなまえ"
+                                    value={userName}
+                                    onChange={e => setUserName(e.target.value)}
+                                />
+                                <input 
+                                    className="w-full bg-sky-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-sky-400 font-bold text-lg text-slate-700"
+                                    placeholder="合言葉 (ルームID)"
+                                    value={roomID}
+                                    onChange={e => setRoomID(e.target.value)}
+                                />
+                                <button 
+                                    className="w-full bg-sky-500 text-white font-black py-5 rounded-2xl text-xl btn-shadow disabled:bg-slate-200 transition-all"
+                                    disabled={!userName || !roomID}
+                                    onClick={handleJoin}
+                                >
+                                    ルームに入る
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const myNumber = roomData?.numbers?.[user?.uid];
+            const myAnswer = roomData?.answers?.[user?.uid];
+
+            return (
+                <div className="min-h-screen p-4 flex flex-col items-center">
+                    <div className="w-full max-w-lg flex flex-col gap-6">
+                        <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm">
+                            <div className="flex items-center gap-2 font-black text-sky-500">
+                                <Icons.Users />
+                                <span>{roomData?.players?.length || 0} 人参加中</span>
+                            </div>
+                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">ROOM: {joinedRoom}</div>
+                        </div>
+
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-md border-b-8 border-sky-100 relative">
+                            <div className="text-center">
+                                <span className="text-sky-300 text-[10px] font-black uppercase tracking-widest block mb-2">Current Theme</span>
+                                <h2 className="text-2xl font-black text-slate-800 leading-tight mb-6">
+                                    {roomData?.theme || "お題を選んでね"}
+                                </h2>
+                                <button onClick={changeTheme} className="bg-sky-50 hover:bg-sky-100 text-sky-500 px-6 py-2 rounded-2xl text-xs font-black flex items-center gap-2 mx-auto transition-colors">
+                                    <Icons.Refresh /> お題を変える
+                                </button>
+                            </div>
+                        </div>
+
+                        {roomData?.status === 'playing' ? (
+                            <div className="space-y-6 animate-pop">
+                                <div className="bg-white rounded-[2.5rem] p-8 shadow-md border-b-8 border-emerald-100">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Secret Number</span>
+                                        <button 
+                                            onClick={() => setIsNumberVisible(!isNumberVisible)}
+                                            className={`px-6 py-2 rounded-2xl text-xs font-black transition-all ${isNumberVisible ? 'bg-slate-100 text-slate-400' : 'bg-emerald-500 text-white shadow-lg'}`}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                {isNumberVisible ? <Icons.EyeOff /> : <Icons.Eye />}
+                                                {isNumberVisible ? '隠す' : '数字を見る'}
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="flex justify-center py-4">
+                                        {isNumberVisible ? (
+                                            <div className="text-9xl font-black text-emerald-500 animate-pop">{myNumber}</div>
+                                        ) : (
+                                            <div className="w-32 h-32 bg-slate-50 rounded-3xl border-4 border-dashed border-slate-200 flex items-center justify-center text-slate-200 text-6xl font-black">?</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-[2.5rem] p-8 shadow-md border-b-8 border-amber-100">
+                                    <div className="text-amber-500 text-[10px] font-black uppercase tracking-widest mb-4">Your Answer</div>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            className="flex-1 bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-amber-400 font-bold text-slate-700"
+                                            placeholder="例えをここに記入"
+                                            value={answer}
+                                            onChange={e => setAnswer(e.target.value)}
+                                        />
+                                        <button onClick={submitAnswer} className="bg-amber-400 text-white px-6 rounded-2xl font-black shadow-[0_4px_0_rgb(217,119,6)] active:shadow-none active:translate-y-1">
+                                            <Icons.Send />
+                                        </button>
+                                    </div>
+                                    {myAnswer && <p className="text-[10px] text-emerald-500 font-black mt-3 flex items-center gap-1"><Icons.Check /> 送信済み: {myAnswer}</p>}
+                                </div>
+
+                                <button onClick={() => setIsLargeDisplay(true)} className="w-full bg-slate-800 text-white py-6 rounded-[2rem] font-black text-lg shadow-[0_8px_0_rgb(31,41,55)] active:shadow-none active:translate-y-2 flex items-center justify-center gap-2">
+                                    <Icons.Maximize /> 全画面でみんなに見せる
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center py-12 text-center">
+                                <div className="bg-white p-10 rounded-[3rem] shadow-xl w-full mb-10 card-shadow">
+                                    <h3 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-6">参加メンバー</h3>
+                                    <div className="space-y-3">
+                                        {roomData?.players?.map((p, i) => (
+                                            <div key={i} className="bg-sky-50 text-sky-600 px-6 py-4 rounded-3xl font-black text-lg border border-sky-100 animate-pop">
+                                                {p.name} {p.uid === user.uid && "(自分)"}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={startGame} 
+                                    disabled={!roomData?.players?.length}
+                                    className="bg-sky-500 text-white px-16 py-6 rounded-[2.5rem] font-black text-2xl btn-shadow disabled:bg-slate-200"
+                                >
+                                    ゲーム開始！
+                                </button>
+                            </div>
+                        )}
+                        
+                        {roomData?.status === 'playing' && (
+                            <button onClick={startGame} className="mt-8 text-slate-300 hover:text-sky-400 text-xs font-black flex items-center gap-2 mx-auto transition-colors">
+                                <Icons.Refresh /> 新しいゲーム（配り直し）
+                            </button>
+                        )}
+                    </div>
+
+                    {isLargeDisplay && (
+                        <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-10 text-center animate-pop">
+                            <div className="text-sky-300 text-xl font-black tracking-widest mb-12 border-b-4 border-sky-50 pb-2 uppercase">{userName}'s Answer</div>
+                            <div className="text-6xl sm:text-9xl font-black text-slate-800 break-words max-w-full mb-20 leading-tight uppercase italic drop-shadow-sm">{myAnswer || answer || "???"}</div>
+                            <button onClick={() => setIsLargeDisplay(false)} className="bg-slate-800 text-white px-12 py-6 rounded-[2.5rem] font-black flex items-center gap-4 text-xl shadow-2xl">
+                                <Icons.Minimize /> とじる
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>

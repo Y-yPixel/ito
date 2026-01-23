@@ -4,88 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ito Online - 価値観共有ゲーム</title>
-    <!-- 安定版の静的CSSを使用 -->
+    <!-- 安定版Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <!-- React本体 -->
+    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- JSXをブラウザで解釈するためのBabel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
-        
-        body { 
-            font-family: 'Noto Sans JP', sans-serif; 
-            background-color: #f0f9ff; 
-            color: #1e293b;
-        }
-
-        .card-custom {
-            background: white;
-            border-radius: 2.5rem;
-            box-shadow: 0 10px 0 #e0f2fe;
-        }
-        .btn-primary {
-            background-color: #0ea5e9;
-            color: white;
-            border-radius: 1.25rem;
-            box-shadow: 0 6px 0 #0284c7;
-            transition: all 0.1s;
-            font-weight: 900;
-        }
-        .btn-primary:active {
-            box-shadow: none;
-            transform: translateY(4px);
-        }
-        .btn-primary:disabled {
-            background-color: #cbd5e1;
-            box-shadow: 0 6px 0 #94a3b8;
-            cursor: not-allowed;
-        }
-        .animate-pop {
-            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes pop {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .input-custom {
-            background-color: #f8fafc;
-            border: 2px solid transparent;
-            border-radius: 1.25rem;
-            padding: 1rem 1.5rem;
-            width: 100%;
-            outline: none;
-            font-weight: 700;
-            transition: border-color 0.2s;
-        }
-        .input-custom:focus {
-            border-color: #38bdf8;
-            background-color: white;
-        }
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #f0f9ff; color: #1e293b; }
+        .card-custom { background: white; border-radius: 2.5rem; box-shadow: 0 10px 0 #e0f2fe; }
+        .btn-primary { background-color: #0ea5e9; color: white; border-radius: 1.25rem; box-shadow: 0 6px 0 #0284c7; transition: all 0.1s; font-weight: 900; }
+        .btn-primary:active { box-shadow: none; transform: translateY(4px); }
+        .btn-primary:disabled { background-color: #cbd5e1; box-shadow: 0 6px 0 #94a3b8; cursor: not-allowed; }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .input-custom { background-color: #f8fafc; border: 2px solid transparent; border-radius: 1.25rem; padding: 1rem 1.5rem; width: 100%; outline: none; font-weight: 700; transition: border-color 0.2s; }
+        .input-custom:focus { border-color: #38bdf8; background-color: white; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- Firebase SDKs & App Logic -->
-    <!-- type="text/babel" と data-type="module" を指定することで JSX と import を両立させます -->
     <script type="text/babel" data-type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // Firebase SDKs (最新の 12.8.0 を使用)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
 
-        // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+        // ==========================================================
+        // Firebase Configuration (最新のご提供情報を反映)
+        // ==========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTrSDQ7koMGWScUpoO77R0jBnfd6e65l4",
+            authDomain: "ito-game-8287f.firebaseapp.com",
+            projectId: "ito-game-8287f",
+            storageBucket: "ito-game-8287f.firebasestorage.app",
+            messagingSenderId: "258676882144",
+            appId: "1:258676882144:web:7a0cd577a60a979012ee85",
+            measurementId: "G-G24ZFJB5FZ"
+        };
 
+        // Firebaseの初期化
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appIdPrefix = typeof __app_id !== 'undefined' ? __app_id : 'ito-prod-stable';
+        const analytics = getAnalytics(app);
 
         const { useState, useEffect } = React;
+        const appIdPrefix = "ito-shared-v1";
 
         // --- SVG Icons ---
         const Icons = {
@@ -112,7 +80,7 @@
             const [user, setUser] = useState(null);
             const [joinedRoom, setJoinedRoom] = useState(null);
             const [roomID, setRoomID] = useState('');
-            const [userName, setUserName] = useState(localStorage.getItem('ito_v5_name') || '');
+            const [userName, setUserName] = useState(localStorage.getItem('ito_v7_name') || '');
             const [roomData, setRoomData] = useState(null);
             const [isNumberVisible, setIsNumberVisible] = useState(false);
             const [answer, setAnswer] = useState('');
@@ -120,16 +88,12 @@
             const [isLoading, setIsLoading] = useState(true);
 
             useEffect(() => {
-                const init = async () => {
+                const initAuth = async () => {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
                     } catch (e) { console.error(e); }
                 };
-                init();
+                initAuth();
                 return onAuthStateChanged(auth, (u) => {
                     setUser(u);
                     setIsLoading(false);
@@ -137,17 +101,19 @@
             }, []);
 
             useEffect(() => {
-                if (!user || !joinedRoom) return;
-                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom);
-                return onSnapshot(roomRef, (s) => s.exists() && setRoomData(s.data()));
+                if (!user || !joinedRoom || !db) return;
+                const roomRef = doc(db, 'rooms', joinedRoom);
+                return onSnapshot(roomRef, (s) => {
+                    if (s.exists()) setRoomData(s.data());
+                }, (err) => console.error("Firestore Error:", err));
             }, [user, joinedRoom]);
 
             const handleJoin = async () => {
-                if (!user || !roomID.trim() || !userName.trim()) return;
+                if (!user || !roomID.trim() || !userName.trim() || !db) return;
                 const cid = roomID.trim().toLowerCase();
-                localStorage.setItem('ito_v5_name', userName);
+                localStorage.setItem('ito_v7_name', userName);
                 
-                const roomRef = doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', cid);
+                const roomRef = doc(db, 'rooms', cid);
                 const snap = await getDoc(roomRef);
                 const p = { uid: user.uid, name: userName };
 
@@ -164,11 +130,11 @@
             };
 
             const startGame = async () => {
-                if (!roomData) return;
+                if (!roomData || !db) return;
                 const ns = Array.from({ length: 100 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
                 const assigned = {};
                 roomData.players.forEach((p, i) => assigned[p.uid] = ns[i]);
-                await updateDoc(doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom), {
+                await updateDoc(doc(db, 'rooms', joinedRoom), {
                     status: 'playing', numbers: assigned, answers: {}, updatedAt: Date.now()
                 });
                 setIsNumberVisible(false);
@@ -176,29 +142,36 @@
             };
 
             const changeTheme = async () => {
+                if (!db) return;
                 const nt = THEMES[Math.floor(Math.random() * THEMES.length)];
-                await updateDoc(doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom), { theme: nt });
+                await updateDoc(doc(db, 'rooms', joinedRoom), { theme: nt });
             };
 
             const submitAnswer = async () => {
-                if (!answer.trim()) return;
-                await updateDoc(doc(db, 'artifacts', appIdPrefix, 'public', 'data', 'rooms', joinedRoom), { [`answers.${user.uid}`]: answer.trim() });
+                if (!answer.trim() || !db) return;
+                await updateDoc(doc(db, 'rooms', joinedRoom), { [`answers.${user.uid}`]: answer.trim() });
             };
 
-            if (isLoading) return <div className="h-screen flex items-center justify-center text-sky-500 font-black">CONNECTING...</div>;
+            if (isLoading) return <div className="h-screen flex items-center justify-center text-sky-500 font-black animate-pulse text-xl">CONNECTING...</div>;
 
             if (!joinedRoom) return (
                 <div className="min-h-screen flex items-center justify-center p-6">
                     <div className="w-full max-w-md card-custom p-10 animate-pop text-center">
-                        <div className="bg-blue-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
+                        <div className="bg-blue-50 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 transform rotate-3 shadow-inner">
                             <Icons.Star className="text-blue-400" />
                         </div>
                         <h1 className="text-4xl font-black text-blue-600 italic tracking-tighter mb-2">ito Online</h1>
                         <p className="text-blue-300 font-bold text-sm mb-8 italic">価値観を合わせて数字を繋ごう</p>
-                        <div className="space-y-4">
-                            <input className="input-custom text-lg" placeholder="あなたのなまえ" value={userName} onChange={e => setUserName(e.target.value)} />
-                            <input className="input-custom text-lg" placeholder="部屋の合言葉" value={roomID} onChange={e => setRoomID(e.target.value)} />
-                            <button className="btn-primary w-full py-5 text-xl" disabled={!userName || !roomID} onClick={handleJoin}>あそびをはじめる</button>
+                        <div className="space-y-4 text-left">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-300 ml-4 uppercase tracking-widest">Your Name</label>
+                                <input className="input-custom text-lg mt-1" placeholder="なまえ" value={userName} onChange={e => setUserName(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-slate-300 ml-4 uppercase tracking-widest">Secret Word</label>
+                                <input className="input-custom text-lg mt-1" placeholder="部屋の合言葉" value={roomID} onChange={e => setRoomID(e.target.value)} />
+                            </div>
+                            <button className="btn-primary w-full py-5 text-xl mt-4" disabled={!userName || !roomID} onClick={handleJoin}>あそびをはじめる</button>
                         </div>
                     </div>
                 </div>
@@ -220,7 +193,7 @@
                         <div className="card-custom p-8 text-center relative overflow-hidden">
                             <span className="text-blue-300 text-[10px] font-black uppercase tracking-widest block mb-2">Theme</span>
                             <h2 className="text-2xl font-black text-slate-800 leading-tight mb-6">{roomData?.theme}</h2>
-                            <button onClick={changeTheme} className="bg-blue-50 hover:bg-blue-100 text-blue-500 px-6 py-2 rounded-xl text-xs font-black flex items-center gap-2 mx-auto">
+                            <button onClick={changeTheme} className="bg-blue-50 hover:bg-blue-100 text-blue-500 px-6 py-2 rounded-xl text-xs font-black flex items-center gap-2 mx-auto transition-colors">
                                 <Icons.Refresh /> お題を変える
                             </button>
                         </div>
@@ -230,12 +203,12 @@
                                 <div className="card-custom p-8 border-b-8 border-green-50">
                                     <div className="flex justify-between items-center mb-6">
                                         <span className="text-green-500 text-[10px] font-black uppercase tracking-widest">Secret Number</span>
-                                        <button onClick={() => setIsNumberVisible(!isNumberVisible)} className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${isNumberVisible ? 'bg-slate-100 text-slate-400' : 'bg-green-500 text-white'}`}>
+                                        <button onClick={() => setIsNumberVisible(!isNumberVisible)} className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${isNumberVisible ? 'bg-slate-100 text-slate-400' : 'bg-green-500 text-white shadow-lg'}`}>
                                             <div className="flex items-center gap-2">{isNumberVisible ? <Icons.EyeOff /> : <Icons.Eye />} {isNumberVisible ? '隠す' : '確認'}</div>
                                         </button>
                                     </div>
                                     <div className="flex justify-center py-4">
-                                        {isNumberVisible ? <div className="text-9xl font-black text-green-500">{myNum}</div> : <div className="w-32 h-32 bg-slate-50 rounded-3xl border-4 border-dashed border-slate-200 flex items-center justify-center text-slate-200 text-6xl font-black">?</div>}
+                                        {isNumberVisible ? <div className="text-9xl font-black text-green-500 animate-pop">{myNum}</div> : <div className="w-32 h-32 bg-slate-50 rounded-3xl border-4 border-dashed border-slate-200 flex items-center justify-center text-slate-200 text-6xl font-black">?</div>}
                                     </div>
                                 </div>
 
@@ -243,39 +216,39 @@
                                     <span className="text-yellow-500 text-[10px] font-black uppercase tracking-widest block mb-4">Your Answer</span>
                                     <div className="flex gap-2">
                                         <input className="input-custom" placeholder="例えを入力" value={answer} onChange={e => setAnswer(e.target.value)} />
-                                        <button onClick={submitAnswer} className="bg-yellow-400 text-white px-6 rounded-xl font-black shadow-md"><Icons.Send /></button>
+                                        <button onClick={submitAnswer} className="bg-yellow-400 text-white px-6 rounded-xl font-black shadow-md transition-transform active:scale-95"><Icons.Send /></button>
                                     </div>
                                     {myAns && <p className="text-[10px] text-green-500 font-black mt-3 flex items-center gap-1"><Icons.Check /> 送信済み: {myAns}</p>}
                                 </div>
 
-                                <button onClick={() => setIsLargeDisplay(true)} className="w-full bg-slate-800 text-white py-6 rounded-3xl font-black text-lg shadow-lg flex items-center justify-center gap-3">
+                                <button onClick={() => setIsLargeDisplay(true)} className="w-full bg-slate-800 text-white py-6 rounded-3xl font-black text-lg shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-transform">
                                     <Icons.Maximize /> 全画面で見せる
                                 </button>
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center py-8 text-center animate-pop">
                                 <div className="bg-white p-8 rounded-[2.5rem] shadow-xl w-full mb-8">
-                                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-6">待機中メンバー</h3>
+                                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-6 text-center">待機中メンバー</h3>
                                     <div className="space-y-3">
                                         {roomData?.players?.map((p, i) => (
-                                            <div key={i} className="bg-blue-50 text-blue-600 px-6 py-4 rounded-2xl font-black text-lg border border-blue-100">{p.name} {p.uid === user.uid && "(自分)"}</div>
+                                            <div key={i} className="bg-blue-50 text-blue-600 px-6 py-4 rounded-2xl font-black text-lg border border-blue-100 animate-pop">{p.name} {p.uid === user.uid && "(自分)"}</div>
                                         ))}
                                     </div>
                                 </div>
-                                <button onClick={startGame} className="btn-primary px-16 py-6 text-2xl">ゲーム開始！</button>
+                                <button onClick={startGame} className="btn-primary px-16 py-6 text-2xl">全員そろった！</button>
                             </div>
                         )}
                         
                         {roomData?.status === 'playing' && (
-                            <button onClick={startGame} className="text-slate-300 hover:text-blue-400 text-xs font-black flex items-center gap-2 mx-auto mt-8"><Icons.Refresh /> 新しいゲームをはじめる</button>
+                            <button onClick={startGame} className="text-slate-300 hover:text-blue-400 text-xs font-black flex items-center gap-2 mx-auto mt-8 pb-10"><Icons.Refresh /> 新しいゲームをはじめる</button>
                         )}
                     </div>
 
                     {isLargeDisplay && (
                         <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-10 text-center animate-pop">
                             <div className="text-blue-300 text-xl font-black tracking-widest mb-12 border-b-4 border-blue-50 pb-2 uppercase">{userName}'s Answer</div>
-                            <div className="text-6xl sm:text-9xl font-black text-slate-800 break-words max-w-full mb-20 leading-tight italic uppercase">{myAns || answer || "???"}</div>
-                            <button onClick={() => setIsLargeDisplay(false)} className="bg-slate-800 text-white px-12 py-6 rounded-3xl font-black flex items-center gap-4 text-xl"><Icons.Minimize /> とじる</button>
+                            <div className="text-6xl sm:text-9xl font-black text-slate-800 break-words max-w-full mb-20 leading-tight italic uppercase drop-shadow-md">{myAns || answer || "???"}</div>
+                            <button onClick={() => setIsLargeDisplay(false)} className="bg-slate-800 text-white px-12 py-6 rounded-3xl font-black flex items-center gap-4 text-xl shadow-2xl"><Icons.Minimize /> とじる</button>
                         </div>
                     )}
                 </div>
